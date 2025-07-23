@@ -166,11 +166,79 @@ def start_watcher():
         observer.join()
 
 
+# --- Dynamic Configuration ---
+CONFIG_FOLDER = Path("config")
+
+def get_config_data():
+    """Loads dynamic configuration from the config folder."""
+    config_data = {
+        "logos": [],
+        "organisation": "My Organisation",
+        "heading": "File Distribution Service",
+        "text": "Welcome to the file distribution service.",
+        "footer_links": []
+    }
+
+    CONFIG_FOLDER.mkdir(exist_ok=True)
+
+    # Load organisation name
+    try:
+        config_data["organisation"] = (CONFIG_FOLDER / "organisation.txt").read_text().strip()
+    except FileNotFoundError:
+        logger.warning("organisation.txt not found, using default.")
+    except Exception as e:
+        logger.error(f"Error reading organisation.txt: {e}")
+
+    # Load heading
+    try:
+        config_data["heading"] = (CONFIG_FOLDER / "heading.txt").read_text().strip()
+    except FileNotFoundError:
+        logger.warning("heading.txt not found, using default.")
+    except Exception as e:
+        logger.error(f"Error reading heading.txt: {e}")
+
+    # Load text
+    try:
+        config_data["text"] = (CONFIG_FOLDER / "text.txt").read_text().strip()
+    except FileNotFoundError:
+        logger.warning("text.txt not found, using default.")
+    except Exception as e:
+        logger.error(f"Error reading text.txt: {e}")
+
+    # Load logos
+    logo_files = sorted(list(CONFIG_FOLDER.glob("*.logo.*")))
+    for logo_path in logo_files:
+        try:
+            with open(logo_path, "rb") as f:
+                # Base64 encode the image for direct embedding in HTML
+                import base64
+                encoded_logo = base64.b64encode(f.read()).decode("utf-8")
+                config_data["logos"].append(f"data:image/svg+xml;base64,{encoded_logo}")
+        except Exception as e:
+            logger.error(f"Error reading or encoding logo {logo_path}: {e}")
+
+
+    # Load footer links
+    link_files = sorted(list(CONFIG_FOLDER.glob("*.link")))
+    for link_path in link_files:
+        try:
+            lines = link_path.read_text().strip().split("\n")
+            if len(lines) >= 2:
+                config_data["footer_links"].append({"url": lines[0], "text": lines[1]})
+            else:
+                logger.warning(f"Skipping malformed link file: {link_path}")
+        except Exception as e:
+            logger.error(f"Error reading link file {link_path}: {e}")
+            
+    return config_data
+
+
 # --- Flask Routes ---
 @app.route("/")
 def index():
-    """Renders the main page."""
-    return render_template("index.html")
+    """Renders the main page with dynamic configuration."""
+    config = get_config_data()
+    return render_template("index.html", config=config)
 
 
 @app.route("/api/events")
