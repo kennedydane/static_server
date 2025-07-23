@@ -78,8 +78,13 @@ def update_checksum_cache():
     # Make a copy of the current cache to compare against later
     old_cache = checksum_cache.copy()
 
-    # Set of files currently on disk
-    files_on_disk = {p.name for p in STATIC_FOLDER.iterdir() if p.is_file()}
+    # Set of files currently on disk (recursive)
+    files_on_disk = {}
+    for file_path in STATIC_FOLDER.rglob("*"):
+        if file_path.is_file():
+            # Use relative path from static folder as the key
+            rel_path = file_path.relative_to(STATIC_FOLDER)
+            files_on_disk[str(rel_path)] = file_path
 
     # Remove files from cache that no longer exist on disk
     for filename in list(checksum_cache.keys()):
@@ -88,8 +93,7 @@ def update_checksum_cache():
             logger.info(f"Removed {filename} from cache.")
 
     # Add new files and update modified files
-    for filename in files_on_disk:
-        file_path = STATIC_FOLDER / filename
+    for filename, file_path in files_on_disk.items():
         mod_time = file_path.stat().st_mtime
 
         if (
@@ -159,7 +163,7 @@ def start_watcher():
     """Starts the filesystem watcher in a separate thread."""
     event_handler = ChangeHandler()
     observer = Observer()
-    observer.schedule(event_handler, str(STATIC_FOLDER), recursive=False)
+    observer.schedule(event_handler, str(STATIC_FOLDER), recursive=True)
     observer.start()
     logger.info(f"Started watching {STATIC_FOLDER} for changes.")
     try:
