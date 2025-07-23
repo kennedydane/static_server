@@ -8,6 +8,7 @@ This project provides a simple and elegant web server for serving static files. 
 *   **Dynamic Checksums**: Automatically calculates and displays MD5 and SHA256 checksums for each file.
 *   **Real-time Updates**: The file list updates automatically when files are added, removed, or modified in the `static` directory using Server-Sent Events (SSE).
 *   **Collapsible Directory Tree**: Files are organized in an expandable tree structure with directories collapsed by default for easy navigation.
+*   **Directory Descriptions**: Add `description.txt` files to directories to provide contextual information that appears when directories are expanded.
 *   **Human-readable File Sizes**: File sizes are displayed in KB, MB, GB format instead of raw bytes.
 *   **Customizable Branding**: Dynamic configuration through the `config/` directory for logos, organization name, headings, and footer links.
 *   **Multi-client Support**: Multiple users can connect simultaneously and receive real-time updates.
@@ -206,6 +207,7 @@ Files in the `static/` directory can be organized in subdirectories of any depth
 - **Navigation**: Click directories to expand/collapse their contents
 - **File Sizes**: Displayed in human-readable format (KB, MB, GB)
 - **Checksums**: MD5 and SHA256 hashes calculated automatically for integrity verification
+- **Descriptions**: Optional `description.txt` files provide context for directories
 
 ## Customization
 
@@ -228,6 +230,29 @@ Modify the text files in `config/` to customize the interface:
 - Edit `text.txt` for the description
 
 Changes to configuration files are automatically detected and cached for performance.
+
+### Adding Directory Descriptions
+Create `description.txt` files in directories to provide contextual information:
+
+#### Root Level Description
+```
+static/description.txt
+```
+Content appears below the table header for all users.
+
+#### Directory-Specific Descriptions
+```
+static/datasets/description.txt
+static/genomics/samples/description.txt
+```
+Content appears when the directory is expanded, providing context about the files within.
+
+**Features:**
+- Descriptions are automatically detected and cached
+- Support for any directory depth
+- Real-time updates when description files are modified
+- Clean formatting with visual distinction from file entries
+- Description files are hidden from the file tree display
 
 ## Acknowledgements
 
