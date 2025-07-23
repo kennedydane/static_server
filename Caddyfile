@@ -1,14 +1,28 @@
 :8080 {
     @static {
         file {
-            root /tmp/melissa/static
+            root /some/path/static
             try_files {path}
         }
     }
 
+    # CORS headers for all static files (required for IGV-Web)
+    header @static {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+        Access-Control-Allow-Headers "Range, Content-Type, Accept-Encoding"
+        Access-Control-Expose-Headers "Content-Length, Content-Range, Accept-Ranges"
+    }
+
+    # Handle CORS preflight requests
+    @options {
+        method OPTIONS
+    }
+    respond @options 204
+
     route {
         file_server @static {
-            root /tmp/melissa/static
+            root /some/path/static
         }
         # Disable buffering for SSE endpoints
         @sse {
