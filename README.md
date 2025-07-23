@@ -13,6 +13,7 @@ This project provides a simple and elegant web server for serving static files. 
 *   **Customizable Branding**: Dynamic configuration through the `config/` directory for logos, organization name, headings, and footer links.
 *   **Multi-client Support**: Multiple users can connect simultaneously and receive real-time updates.
 *   **Responsive Design**: Clean interface that adapts to different screen sizes with wider content area for better file list viewing.
+*   **CORS and Range Request Support**: Full support for cross-origin requests and HTTP range requests, making it compatible with genomic visualization tools like IGV-Web.
 *   **Robust Logging**: Features log rotation, compression, and retention with detailed file system monitoring.
 *   **Intelligent Caching**: Configuration and file data are cached for optimal performance.
 
@@ -65,6 +66,20 @@ your-domain.com {
             try_files {path}
         }
     }
+
+    # CORS headers for all static files (required for IGV-Web)
+    header @static {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+        Access-Control-Allow-Headers "Range, Content-Type, Accept-Encoding"
+        Access-Control-Expose-Headers "Content-Length, Content-Range, Accept-Ranges"
+    }
+
+    # Handle CORS preflight requests
+    @options {
+        method OPTIONS
+    }
+    respond @options 204
 
     route {
         file_server @static {
@@ -230,6 +245,22 @@ Modify the text files in `config/` to customize the interface:
 - Edit `text.txt` for the description
 
 Changes to configuration files are automatically detected and cached for performance.
+
+## Genomic Data Compatibility
+
+This server is specifically configured for hosting genomic data files compatible with visualization tools like IGV-Web:
+
+### Supported Features
+- **CORS Headers**: Cross-origin resource sharing enabled for web-based genomic viewers
+- **HTTP Range Requests**: Efficient streaming of large files (BAM, VCF, BigWig, etc.)
+- **File Integrity**: MD5 checksums for data verification
+- **Directory Organization**: Structured file organization with descriptions
+
+### IGV-Web Integration
+The server meets all requirements for IGV-Web track hosting:
+- Proper CORS configuration with exposed headers
+- Range request support for efficient file streaming
+- No additional configuration needed
 
 ### Adding Directory Descriptions
 Create `description.txt` files in directories to provide contextual information:
