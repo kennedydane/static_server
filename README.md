@@ -5,7 +5,7 @@ This project provides a simple and elegant web server for serving static files. 
 ## Features
 
 *   **Static File Serving**: Serves files from a `static` directory with recursive subdirectory support.
-*   **Dynamic Checksums**: Automatically calculates and displays MD5 and SHA256 checksums for each file.
+*   **Dynamic Checksums**: Automatically calculates and displays MD5 checksums for each file.
 *   **Real-time Updates**: The file list updates automatically when files are added, removed, or modified in the `static` directory using Server-Sent Events (SSE).
 *   **Collapsible Directory Tree**: Files are organized in an expandable tree structure with directories collapsed by default for easy navigation.
 *   **Directory Descriptions**: Add `description.txt` files to directories to provide contextual information that appears when directories are expanded.
@@ -206,7 +206,7 @@ Files in the `static/` directory can be organized in subdirectories of any depth
 - 📄 **Files**: Displayed with file icons and full relative paths (e.g., `datasets/genome/sample1.vcf`)
 - **Navigation**: Click directories to expand/collapse their contents
 - **File Sizes**: Displayed in human-readable format (KB, MB, GB)
-- **Checksums**: MD5 and SHA256 hashes calculated automatically for integrity verification
+- **Checksums**: MD5 hashes calculated automatically for integrity verification
 - **Descriptions**: Optional `description.txt` files provide context for directories
 
 ## Customization

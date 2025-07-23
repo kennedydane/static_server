@@ -4,12 +4,11 @@
             <th>Filename</th>
             <th>Size</th>
             <th>MD5</th>
-            <th>SHA256</th>
         </tr>
     </thead>
     <tbody>
         <tr class="description-row">
-            <td colspan="4" style="padding: 15px; background-color: #f8f9fa; font-style: italic; border-bottom: 2px solid #dee2e6;">
+            <td colspan="3" style="padding: 15px; background-color: #f8f9fa; font-style: italic; border-bottom: 2px solid #dee2e6;">
                 {{ root_description }}
             </td>
         </tr>
@@ -26,11 +25,11 @@
                     📁 {{ name }}/
                 </span>
             </td>
-            <td colspan="3"></td>
+            <td colspan="2"></td>
         </tr>
         {% if item.description %}
             <tr class="directory-description" data-level="{{ level }}" data-parent="{{ item.path }}" data-directory="{{ item.path }}" style="display: none;">
-                <td colspan="4" style="padding: 10px 15px; padding-left: {{ (level + 1) * 20 + 15 }}px; background-color: #f1f3f4; font-style: italic; font-size: 0.9em; border-left: 3px solid #007bff;">
+                <td colspan="3" style="padding: 10px 15px; padding-left: {{ (level + 1) * 20 + 15 }}px; background-color: #f1f3f4; font-style: italic; font-size: 0.9em; border-left: 3px solid #007bff;">
                     {{ item.description }}
                 </td>
             </tr>
@@ -45,7 +44,6 @@
             </td>
             <td>{{ item.data.size_human }}</td>
             <td class="checksum">{{ item.data.md5 }}</td>
-            <td class="checksum">{{ item.data.sha256 }}</td>
         </tr>
     {% endif %}
 {% endmacro %}

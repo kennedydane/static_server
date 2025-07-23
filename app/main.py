@@ -126,19 +126,17 @@ def format_file_size(size_bytes):
     return f"{size_bytes:.1f} {size_names[i]}"
 
 
-def calculate_checksums(file_path):
-    """Calculates MD5 and SHA256 checksums for a file."""
+def calculate_checksum(file_path):
+    """Calculates MD5 checksum for a file."""
     md5 = hashlib.md5()
-    sha256 = hashlib.sha256()
     try:
         with open(file_path, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 md5.update(chunk)
-                sha256.update(chunk)
-        return md5.hexdigest(), sha256.hexdigest()
+        return md5.hexdigest()
     except (IOError, OSError) as e:
         logger.error(f"Error reading file {file_path}: {e}")
-        return None, None
+        return None
 
 
 def update_checksum_cache():
@@ -175,12 +173,11 @@ def update_checksum_cache():
             filename not in checksum_cache or
             mod_time > checksum_cache[filename].get("mod_time", 0)
         ):
-            md5, sha256 = calculate_checksums(file_path)
-            if md5 and sha256:
+            md5 = calculate_checksum(file_path)
+            if md5:
                 file_size = file_path.stat().st_size
                 checksum_cache[filename] = {
                     "md5": md5,
-                    "sha256": sha256,
                     "mod_time": mod_time,
                     "size": file_size,
                     "size_human": format_file_size(file_size),
