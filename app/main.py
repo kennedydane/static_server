@@ -131,10 +131,25 @@ def initial_cache_load():
 
 # --- Filesystem Watcher ---
 class ChangeHandler(FileSystemEventHandler):
-    """Handler for filesystem events."""
-    def on_any_event(self, event):
-        logger.info(f"Detected filesystem change: {event.event_type} on {event.src_path}")
-        update_checksum_cache()
+    """Handler for filesystem events, triggering updates only on finished operations."""
+
+    def on_closed(self, event):
+        """Called when a file is closed (after writing)."""
+        if not event.is_directory:
+            logger.info(f"File closed: {event.src_path}. Triggering cache update.")
+            update_checksum_cache()
+
+    def on_deleted(self, event):
+        """Called when a file or directory is deleted."""
+        if not event.is_directory:
+            logger.info(f"File deleted: {event.src_path}. Triggering cache update.")
+            update_checksum_cache()
+
+    def on_moved(self, event):
+        """Called when a file or directory is moved or renamed."""
+        if not event.is_directory:
+            logger.info(f"File moved: {event.src_path} to {event.dest_path}. Triggering cache update.")
+            update_checksum_cache()
 
 
 def start_watcher():
