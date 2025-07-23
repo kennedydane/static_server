@@ -52,6 +52,20 @@ def setup_logging(log_file):
 
 
 # --- Checksum Logic ---
+def format_file_size(size_bytes):
+    """Convert bytes to human readable format."""
+    if size_bytes == 0:
+        return "0 B"
+    
+    size_names = ["B", "KB", "MB", "GB", "TB", "PB"]
+    i = 0
+    while size_bytes >= 1024 and i < len(size_names) - 1:
+        size_bytes /= 1024.0
+        i += 1
+    
+    return f"{size_bytes:.1f} {size_names[i]}"
+
+
 def calculate_checksums(file_path):
     """Calculates MD5 and SHA256 checksums for a file."""
     md5 = hashlib.md5()
@@ -102,11 +116,13 @@ def update_checksum_cache():
         ):
             md5, sha256 = calculate_checksums(file_path)
             if md5 and sha256:
+                file_size = file_path.stat().st_size
                 checksum_cache[filename] = {
                     "md5": md5,
                     "sha256": sha256,
                     "mod_time": mod_time,
-                    "size": file_path.stat().st_size,
+                    "size": file_size,
+                    "size_human": format_file_size(file_size),
                 }
                 logger.info(f"Updated checksums for {filename}.")
 

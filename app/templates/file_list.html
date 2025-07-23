@@ -1,7 +1,7 @@
 {% for filename, data in files.items() %}
 <tr>
     <td><a href="/{{ filename }}">{{ filename }}</a></td>
-    <td>{{ data.size }}</td>
+    <td>{{ data.size_human }}</td>
     <td class="checksum">{{ data.md5 }}</td>
     <td class="checksum">{{ data.sha256 }}</td>
 </tr>
