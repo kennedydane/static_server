@@ -52,6 +52,31 @@ def setup_logging(log_file):
 
 
 # --- Checksum Logic ---
+def build_file_tree(files_dict):
+    """Build a nested tree structure from flat file paths."""
+    tree = {}
+    
+    for filepath, data in files_dict.items():
+        parts = filepath.split('/')
+        current = tree
+        
+        # Navigate/create the directory structure
+        for i, part in enumerate(parts[:-1]):
+            if part not in current:
+                current[part] = {'type': 'directory', 'children': {}, 'path': '/'.join(parts[:i+1])}
+            current = current[part]['children']
+        
+        # Add the file
+        filename = parts[-1]
+        current[filename] = {
+            'type': 'file',
+            'path': filepath,
+            'data': data
+        }
+    
+    return tree
+
+
 def format_file_size(size_bytes):
     """Convert bytes to human readable format."""
     if size_bytes == 0:
@@ -385,6 +410,31 @@ def get_files_table():
     """Returns the list of files and their checksums as an HTML table."""
     sorted_files = dict(sorted(checksum_cache.items()))
     return render_template("file_list.html", files=sorted_files)
+
+
+@app.route("/api/files/tree")
+def get_files_tree():
+    """Returns the file tree structure as HTML."""
+    sorted_files = dict(sorted(checksum_cache.items()))
+    tree = build_file_tree(sorted_files)
+    return render_template("file_tree.html", tree=tree)
+
+
+@app.route("/api/files/tree/<path:directory>")
+def get_directory_contents(directory):
+    """Returns the contents of a specific directory for expansion."""
+    sorted_files = dict(sorted(checksum_cache.items()))
+    tree = build_file_tree(sorted_files)
+    
+    # Navigate to the requested directory
+    current = tree
+    for part in directory.split('/'):
+        if part in current and current[part]['type'] == 'directory':
+            current = current[part]['children']
+        else:
+            return "Directory not found", 404
+    
+    return render_template("directory_contents.html", tree=current, parent_path=directory)
 
 
 # --- Main Execution ---

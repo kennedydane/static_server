@@ -1,0 +1,29 @@
+{% macro render_tree_item(name, item, level=0, parent_path='') %}
+    {% if item.type == 'directory' %}
+        <tr class="directory-row" data-level="{{ level }}" data-path="{{ item.path }}" {% if parent_path %}data-parent="{{ parent_path }}" style="display: none;"{% endif %}>
+            <td style="padding-left: {{ level * 20 + 15 }}px;">
+                <span class="directory-toggle" style="cursor: pointer; user-select: none;">
+                    <span class="toggle-icon">▶</span>
+                    📁 {{ name }}/
+                </span>
+            </td>
+            <td colspan="3"></td>
+        </tr>
+        {% for child_name, child_item in item.children.items() %}
+            {{ render_tree_item(child_name, child_item, level + 1, item.path) }}
+        {% endfor %}
+    {% else %}
+        <tr class="file-row" data-level="{{ level }}" data-parent="{{ parent_path }}" {% if parent_path %}style="display: none;"{% endif %}>
+            <td style="padding-left: {{ level * 20 + 15 }}px;">
+                <a href="/{{ item.path }}">📄 {{ name }}</a>
+            </td>
+            <td>{{ item.data.size_human }}</td>
+            <td class="checksum">{{ item.data.md5 }}</td>
+            <td class="checksum">{{ item.data.sha256 }}</td>
+        </tr>
+    {% endif %}
+{% endmacro %}
+
+{% for name, item in tree.items() %}
+    {{ render_tree_item(name, item) }}
+{% endfor %}

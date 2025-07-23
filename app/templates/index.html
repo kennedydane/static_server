@@ -152,6 +152,33 @@
             color: var(--footer-fg);
         }
 
+        .directory-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toggle-icon {
+            transition: transform 0.2s ease;
+            font-size: 0.8em;
+        }
+
+        .toggle-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .directory-row {
+            background-color: #f8f9fa;
+        }
+
+        .directory-row:hover {
+            background-color: #e9ecef;
+        }
+
+        .file-row:hover {
+            background-color: #f1f3f5;
+        }
+
     </style>
 </head>
 <body hx-ext="sse" sse-connect="/api/events">
@@ -187,8 +214,8 @@
                         <th>SHA256</th>
                     </tr>
                 </thead>
-                <tbody hx-trigger="load, sse:update" hx-get="/api/files/table" hx-swap="innerHTML">
-                    <!-- File list will be loaded here by htmx -->
+                <tbody hx-trigger="load, sse:update" hx-get="/api/files/tree" hx-swap="innerHTML">
+                    <!-- File tree will be loaded here by htmx -->
                 </tbody>
             </table>
         </div>
@@ -204,6 +231,56 @@
         {% endif %}
         <p>&copy; 2025 {{ config.organisation }}. All rights reserved.</p>
     </footer>
+
+    <script>
+        // Handle directory toggle clicks
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.directory-toggle')) {
+                const toggle = e.target.closest('.directory-toggle');
+                const icon = toggle.querySelector('.toggle-icon');
+                const directoryRow = toggle.closest('.directory-row');
+                const directoryPath = directoryRow.getAttribute('data-path');
+                
+                // Find all child rows that belong to this directory
+                const allRows = document.querySelectorAll('tr[data-parent^="' + directoryPath + '"]');
+                const directChildren = Array.from(allRows).filter(row => {
+                    const parentPath = row.getAttribute('data-parent');
+                    return parentPath === directoryPath;
+                });
+                
+                const isExpanded = icon.classList.contains('expanded');
+                
+                if (isExpanded) {
+                    // Collapse - hide all descendants
+                    hideDescendants(directoryPath);
+                    icon.classList.remove('expanded');
+                } else {
+                    // Expand - show direct children only
+                    directChildren.forEach(row => {
+                        row.style.display = 'table-row';
+                    });
+                    icon.classList.add('expanded');
+                }
+                
+                e.preventDefault();
+            }
+        });
+
+        function hideDescendants(directoryPath) {
+            // Hide all rows that are descendants of this directory
+            const allRows = document.querySelectorAll('tr[data-parent^="' + directoryPath + '"]');
+            allRows.forEach(row => {
+                row.style.display = 'none';
+                // Also collapse any expanded subdirectories
+                if (row.classList.contains('directory-row')) {
+                    const icon = row.querySelector('.toggle-icon');
+                    if (icon) {
+                        icon.classList.remove('expanded');
+                    }
+                }
+            });
+        }
+    </script>
 
 </body>
 </html>

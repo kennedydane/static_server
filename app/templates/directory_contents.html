@@ -1,0 +1,34 @@
+{% macro render_tree_item(name, item, level, parent_path) %}
+    {% if item.type == 'directory' %}
+        <tr class="directory-row" data-level="{{ level }}">
+            <td style="padding-left: {{ level * 20 + 15 }}px;">
+                <span class="directory-toggle" 
+                      hx-get="/api/files/tree/{{ parent_path }}/{{ name }}"
+                      hx-target="#dir-{{ (parent_path + '/' + name) | replace('/', '-') }}"
+                      hx-swap="outerHTML"
+                      style="cursor: pointer; user-select: none;">
+                    <span class="toggle-icon">▶</span>
+                    📁 {{ name }}/
+                </span>
+            </td>
+            <td colspan="3"></td>
+        </tr>
+        <tbody id="dir-{{ (parent_path + '/' + name) | replace('/', '-') }}" style="display: none;"></tbody>
+        {% for child_name, child_item in item.children.items() %}
+            {{ render_tree_item(child_name, child_item, level + 1, parent_path + '/' + name) }}
+        {% endfor %}
+    {% else %}
+        <tr class="file-row" data-level="{{ level }}">
+            <td style="padding-left: {{ level * 20 + 15 }}px;">
+                <a href="/{{ item.path }}">📄 {{ name }}</a>
+            </td>
+            <td>{{ item.data.size_human }}</td>
+            <td class="checksum">{{ item.data.md5 }}</td>
+            <td class="checksum">{{ item.data.sha256 }}</td>
+        </tr>
+    {% endif %}
+{% endmacro %}
+
+{% for name, item in tree.items() %}
+    {{ render_tree_item(name, item, 1, parent_path) }}
+{% endfor %}
