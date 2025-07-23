@@ -4,9 +4,10 @@ import json
 import os
 import time
 from pathlib import Path
+from queue import Queue
 from threading import Thread
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, Response, jsonify, render_template
 from loguru import logger
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -14,7 +15,9 @@ from watchdog.observers import Observer
 # --- Global Configuration ---
 STATIC_FOLDER = None
 CACHE_FILE = Path("cache/checksums.json")
-WATCH_DELAY = 300  # 5 minutes, as requested
+checksum_cache = {}
+sse_queue = Queue()
+
 
 # --- Initialization ---
 app = Flask(__name__)
@@ -62,46 +65,68 @@ def calculate_checksums(file_path):
 
 
 def update_checksum_cache():
-    """Scans the static folder and updates the checksum cache."""
-    logger.info("Updating checksum cache...")
+    """
+    Scans the static folder, updates the in-memory cache, and persists it to a file.
+    Notifies clients of changes via SSE.
+    """
+    global checksum_cache
+    logger.info("Scanning for file changes...")
+
+    # Make a copy of the current cache to compare against later
+    old_cache = checksum_cache.copy()
+
+    # Set of files currently on disk
+    files_on_disk = {p.name for p in STATIC_FOLDER.iterdir() if p.is_file()}
+
+    # Remove files from cache that no longer exist on disk
+    for filename in list(checksum_cache.keys()):
+        if filename not in files_on_disk:
+            del checksum_cache[filename]
+            logger.info(f"Removed {filename} from cache.")
+
+    # Add new files and update modified files
+    for filename in files_on_disk:
+        file_path = STATIC_FOLDER / filename
+        mod_time = file_path.stat().st_mtime
+
+        if (
+            filename not in checksum_cache or
+            mod_time > checksum_cache[filename].get("mod_time", 0)
+        ):
+            md5, sha256 = calculate_checksums(file_path)
+            if md5 and sha256:
+                checksum_cache[filename] = {
+                    "md5": md5,
+                    "sha256": sha256,
+                    "mod_time": mod_time,
+                    "size": file_path.stat().st_size,
+                }
+                logger.info(f"Updated checksums for {filename}.")
+
+    # If the cache has changed, persist to file and notify clients
+    if checksum_cache != old_cache:
+        logger.info("Checksum cache has changed. Persisting and notifying clients.")
+        try:
+            with open(CACHE_FILE, "w") as f:
+                json.dump(checksum_cache, f, indent=4)
+            logger.info("Checksum cache persisted to file.")
+            sse_queue.put("update")
+        except (IOError, OSError) as e:
+            logger.error(f"Error writing cache file: {e}")
+    else:
+        logger.info("No changes to checksum cache detected.")
+
+
+def initial_cache_load():
+    """Loads the cache from the file into memory at startup."""
+    global checksum_cache
     try:
-        with open(CACHE_FILE, "r+") as f:
-            try:
-                cache_data = json.load(f)
-            except json.JSONDecodeError:
-                cache_data = {}
-
-            # Remove files from cache that no longer exist
-            for filename in list(cache_data.keys()):
-                if not (STATIC_FOLDER / filename).exists():
-                    del cache_data[filename]
-                    logger.info(f"Removed {filename} from cache.")
-
-            # Add new/modified files to cache
-            for file_path in STATIC_FOLDER.iterdir():
-                if file_path.is_file():
-                    filename = file_path.name
-                    mod_time = file_path.stat().st_mtime
-                    if (
-                        filename not in cache_data
-                        or mod_time > cache_data.get(filename, {}).get("mod_time", 0)
-                    ):
-                        md5, sha256 = calculate_checksums(file_path)
-                        if md5 and sha256:
-                            cache_data[filename] = {
-                                "md5": md5,
-                                "sha256": sha256,
-                                "mod_time": mod_time,
-                                "size": file_path.stat().st_size,
-                            }
-                            logger.info(f"Updated checksums for {filename}.")
-            
-            f.seek(0)
-            json.dump(cache_data, f, indent=4)
-            f.truncate()
-        logger.info("Checksum cache update complete.")
-    except (IOError, OSError) as e:
-        logger.error(f"Error updating cache file: {e}")
+        with open(CACHE_FILE, "r") as f:
+            checksum_cache = json.load(f)
+        logger.info("Initial checksum cache loaded from file.")
+    except (IOError, json.JSONDecodeError):
+        logger.warning(f"Could not load cache file, will perform a fresh scan.")
+        checksum_cache = {}
 
 
 # --- Filesystem Watcher ---
@@ -120,12 +145,10 @@ def start_watcher():
     observer.start()
     logger.info(f"Started watching {STATIC_FOLDER} for changes.")
     try:
-        while True:
-            time.sleep(WATCH_DELAY)
-            update_checksum_cache()
+        observer.join()
     except KeyboardInterrupt:
         observer.stop()
-    observer.join()
+        observer.join()
 
 
 # --- Flask Routes ---
@@ -135,27 +158,26 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/api/events")
+def sse_events():
+    """Endpoint for Server-Sent Events to notify clients of updates."""
+    def event_stream():
+        while True:
+            message = sse_queue.get() # Blocks until a message is available
+            yield f"event: update\ndata: {message}\n\n"
+    return Response(event_stream(), mimetype="text/event-stream")
+
+
 @app.route("/api/files")
 def get_files_json():
-    """Returns the list of files and their checksums from the cache as JSON."""
-    try:
-        with open(CACHE_FILE, "r") as f:
-            data = json.load(f)
-        return jsonify(data)
-    except (IOError, json.JSONDecodeError) as e:
-        logger.error(f"Could not read or parse cache file: {e}")
-        return jsonify({}), 500
+    """Returns the list of files and their checksums from the in-memory cache as JSON."""
+    return jsonify(checksum_cache)
+
 
 @app.route("/api/files/table")
 def get_files_table():
     """Returns the list of files and their checksums as an HTML table."""
-    try:
-        with open(CACHE_FILE, "r") as f:
-            data = json.load(f)
-        return render_template("file_list.html", files=data)
-    except (IOError, json.JSONDecodeError) as e:
-        logger.error(f"Could not read or parse cache file: {e}")
-        return "Error loading file data.", 500
+    return render_template("file_list.html", files=checksum_cache)
 
 
 # --- Main Execution ---
@@ -178,7 +200,8 @@ if __name__ == "__main__":
 
     setup_logging(args.log_file)
     
-    # Initial cache update
+    # Load initial cache and perform first scan
+    initial_cache_load()
     update_checksum_cache()
 
     # Start the watcher in a background thread

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Static File Server</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -52,7 +53,7 @@
         }
     </style>
 </head>
-<body>
+<body hx-ext="sse" sse-connect="/api/events">
     <h1>Available Files</h1>
     <table>
         <thead>
@@ -63,7 +64,7 @@
                 <th>SHA256</th>
             </tr>
         </thead>
-        <tbody hx-get="/api/files/table" hx-trigger="load, every 5s" hx-swap="innerHTML">
+        <tbody hx-trigger="load, sse:update" hx-get="/api/files/table" hx-swap="innerHTML">
             <!-- Content will be loaded here by htmx -->
         </tbody>
     </table>
