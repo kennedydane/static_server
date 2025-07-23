@@ -1,18 +1,18 @@
+<thead>
+    <tr>
+        <th>Filename</th>
+        <th>Size</th>
+        <th>MD5</th>
+    </tr>
+</thead>
 {% if root_description %}
-    <thead>
-        <tr>
-            <th>Filename</th>
-            <th>Size</th>
-            <th>MD5</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr class="description-row">
-            <td colspan="3" style="padding: 15px; background-color: #f8f9fa; font-style: italic; border-bottom: 2px solid #dee2e6;">
-                {{ root_description }}
-            </td>
-        </tr>
-    </tbody>
+<tbody>
+    <tr class="description-row">
+        <td colspan="3" style="padding: 15px; background-color: #f8f9fa; font-style: italic; border-bottom: 2px solid #dee2e6;">
+            {{ root_description }}
+        </td>
+    </tr>
+</tbody>
 {% endif %}
 
 <tbody>
