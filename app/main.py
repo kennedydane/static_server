@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 import json
 import os
@@ -17,7 +18,24 @@ WATCH_DELAY = 300  # 5 minutes, as requested
 
 # --- Initialization ---
 app = Flask(__name__)
-logger.add("gemini.log", rotation="10 MB")
+
+def setup_logging(log_file):
+    """Configures the application logger."""
+    logger.remove() # Remove the default handler
+    log_path = Path(log_file)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    logger.add(
+        log_path,
+        rotation="10 MB",    # Rotate the file when it reaches 10 MB
+        retention="30 days", # Keep logs for up to 30 days
+        compression="zip",   # Compress old log files
+        level="INFO",        # Set the minimum log level to INFO
+        enqueue=True,        # Make logging non-blocking
+        backtrace=True,      # Show full stack traces on errors
+        diagnose=True        # Add exception variable values
+    )
+    logger.info("Logging configured.")
 
 # Ensure necessary directories and files exist
 STATIC_FOLDER.mkdir(exist_ok=True)
@@ -142,6 +160,16 @@ def get_files_table():
 
 # --- Main Execution ---
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Simple Static File Server")
+    parser.add_argument(
+        "--log-file",
+        default="logs/app.log",
+        help="Path to the log file."
+    )
+    args = parser.parse_args()
+
+    setup_logging(args.log_file)
+    
     # Initial cache update
     update_checksum_cache()
 

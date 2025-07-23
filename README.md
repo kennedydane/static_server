@@ -8,6 +8,7 @@ This project provides a simple and elegant web server for serving static files. 
 *   **Dynamic Checksums**: Automatically calculates and displays MD5 and SHA256 checksums for each file.
 *   **Real-time Updates**: The file list updates automatically when files are added or removed from the `static` directory.
 *   **Elegant Frontend**: A clean and simple user interface.
+*   **Robust Logging**: Features log rotation, compression, and retention.
 
 ## Production Deployment
 
@@ -46,7 +47,7 @@ The `Caddyfile` is configured to work out-of-the-box for local development. For 
 
 Replace the contents of the `Caddyfile` with the following, replacing `your-domain.com` with your actual domain name:
 
-```
+```caddy
 your-domain.com {
     # Caddy will automatically provision and renew a TLS certificate for your domain.
     # It will also redirect HTTP to HTTPS.
@@ -71,9 +72,16 @@ your-domain.com {
 
 **Note**: Make sure to replace `/path/to/your/project` with the actual absolute path to the project directory on your server.
 
-#### Python Backend
+#### Python Backend Logging
 
-The Python application (`app/main.py`) is configured to run on `localhost:5000`. This is the recommended setup for production, as Caddy will be acting as a reverse proxy and handling all incoming traffic.
+The Python application can be configured to log to a specific file using the `--log-file` command-line argument. For production, it's recommended to log to a standard location like `/var/log/file_server/app.log`.
+
+First, create the directory and set the correct permissions (replace `your-user` with the user that will run the application):
+
+```bash
+sudo mkdir -p /var/log/file_server
+sudo chown your-user:your-user /var/log/file_server
+```
 
 ### 3. Running the Application
 
@@ -81,18 +89,19 @@ For a production environment, it's important to run the Python backend as a serv
 
 #### Create a systemd Service File
 
-Create a new file at `/etc/systemd/system/melissa.service` with the following content:
+Create a new file at `/etc/systemd/system/fserver.service` with the following content.
 
 ```ini
 [Unit]
-Description=Melissa Static File Server
+Description=Static File Server
 After=network.target
 
 [Service]
 User=your-user
 Group=your-group
 WorkingDirectory=/path/to/your/project
-ExecStart=/path/to/your/project/.venv/bin/python app/main.py
+# Note the --log-file argument
+ExecStart=/path/to/your/project/.venv/bin/python app/main.py --log-file /var/log/file_server/app.log
 Restart=always
 
 [Install]
@@ -108,14 +117,22 @@ WantedBy=multi-user.target
 Now, enable and start the service:
 
 ```bash
-sudo systemctl enable melissa.service
-sudo systemctl start melissa.service
+sudo systemctl enable fserver.service
+sudo systemctl start fserver.service
 ```
 
 You can check the status of the service with:
 
 ```bash
-sudo systemctl status melissa.service
+sudo systemctl status fserver.service
+```
+
+And view the logs with:
+
+```bash
+sudo journalctl -u melissa.service
+# Or view the log file directly
+sudo tail -f /var/log/file_server/app.log
 ```
 
 ### 4. Start Caddy
@@ -133,3 +150,7 @@ caddy run
 ```
 
 Your website should now be live at `https://your-domain.com`.
+
+## Acknowledgements
+
+This project was created with the assistance of Google's Gemini.
