@@ -1,0 +1,15 @@
+:8080 {
+    @static {
+        file {
+            root /tmp/melissa/static
+            try_files {path}
+        }
+    }
+
+    route {
+        file_server @static {
+            root /tmp/melissa/static
+        }
+        reverse_proxy localhost:5000
+    }
+}
