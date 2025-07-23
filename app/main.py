@@ -186,13 +186,15 @@ def sse_events():
 @app.route("/api/files")
 def get_files_json():
     """Returns the list of files and their checksums from the in-memory cache as JSON."""
-    return jsonify(checksum_cache)
+    sorted_files = dict(sorted(checksum_cache.items()))
+    return jsonify(sorted_files)
 
 
 @app.route("/api/files/table")
 def get_files_table():
     """Returns the list of files and their checksums as an HTML table."""
-    return render_template("file_list.html", files=checksum_cache)
+    sorted_files = dict(sorted(checksum_cache.items()))
+    return render_template("file_list.html", files=sorted_files)
 
 
 # --- Main Execution ---

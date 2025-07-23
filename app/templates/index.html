@@ -3,70 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Static File Server</title>
+    <title>File Distribution Service</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
     <style>
+        :root {
+            --header-bg: #00355e;
+            --header-fg: #ffffff;
+            --footer-bg: #00355e;
+            --footer-fg: #ced4da;
+            --body-bg: #f4f7f6;
+            --content-bg: #ffffff;
+            --text-color: #212529;
+            --heading-color: #00355e;
+            --link-color: #009ada;
+            --border-color: #dee2e6;
+            --header-height: 60px;
+            --footer-height: 140px;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            max-width: 800px;
+            color: var(--text-color);
+            background-color: var(--body-bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background-color: var(--header-bg);
+            color: var(--header-fg);
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .logo svg {
+            width: 40px;
+            height: 40px;
+            margin-right: 1rem;
+        }
+
+        .container {
+            flex: 1;
+            max-width: 960px;
+            width: 100%;
             margin: 0 auto;
             padding: 2rem;
-            background-color: #f9f9f9;
+            box-sizing: border-box;
         }
+
+        .content-box {
+            background-color: var(--content-bg);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+
         h1 {
+            color: var(--heading-color);
             text-align: center;
-            color: #2c3e50;
+            margin-bottom: 1rem;
         }
+
+        .intro-text {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #6c757d;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 2rem;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-            background-color: #fff;
         }
+
         th, td {
             padding: 12px 15px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border-color);
         }
+
         th {
-            background-color: #4CAF50;
-            color: white;
+            background-color: var(--header-bg);
+            color: var(--header-fg);
+            font-weight: 600;
         }
+
         tr:hover {
-            background-color: #f5f5f5;
+            background-color: #f1f3f5;
         }
+
         a {
-            color: #3498db;
+            color: var(--link-color);
             text-decoration: none;
         }
+
         a:hover {
             text-decoration: underline;
         }
+
         .checksum {
             font-family: monospace;
             font-size: 0.9em;
             color: #7f8c8d;
+            word-break: break-all;
         }
+
+        .footer {
+            background-color: var(--footer-bg);
+            color: var(--footer-fg);
+            padding: 2rem;
+            text-align: center;
+            font-size: 0.9rem;
+            height: var(--footer-height);
+            box-sizing: border-box;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            list-style: none;
+            padding: 0;
+            margin: 0 0 1rem 0;
+        }
+
+        .footer a {
+            color: var(--footer-fg);
+        }
+
     </style>
 </head>
 <body hx-ext="sse" sse-connect="/api/events">
-    <h1>Available Files</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Filename</th>
-                <th>Size (bytes)</th>
-                <th>MD5</th>
-                <th>SHA256</th>
-            </tr>
-        </thead>
-        <tbody hx-trigger="load, sse:update" hx-get="/api/files/table" hx-swap="innerHTML">
-            <!-- Content will be loaded here by htmx -->
-        </tbody>
-    </table>
+
+    <header class="header">
+        <div class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100" height="100" rx="15" fill="#ecf0f1"/>
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="40" font-family="sans-serif" fill="#2c3e50">LOGO</text>
+            </svg>
+            <span>My Organisation</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="content-box">
+            <h1>File Distribution Service</h1>
+            <p class="intro-text">
+                This is a placeholder text area. You can add some information about the files being served here.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Size (bytes)</th>
+                        <th>MD5</th>
+                        <th>SHA256</th>
+                    </tr>
+                </thead>
+                <tbody hx-trigger="load, sse:update" hx-get="/api/files/table" hx-swap="innerHTML">
+                    <!-- File list will be loaded here by htmx -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <ul class="footer-links">
+            <li><a href="#">Link 1</a></li>
+            <li><a href="#">Link 2</a></li>
+            <li><a href="#">Link 3</a></li>
+        </ul>
+        <p>&copy; 2025 My Organisation. All rights reserved.</p>
+    </footer>
+
 </body>
 </html>
