@@ -58,11 +58,18 @@
 
         .container {
             flex: 1;
-            max-width: 960px;
+            max-width: min(90vw, 1400px);
             width: 100%;
             margin: 0 auto;
             padding: 2rem;
             box-sizing: border-box;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                max-width: 95vw;
+                padding: 1rem;
+            }
         }
 
         .content-box {
