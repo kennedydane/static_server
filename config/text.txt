@@ -1,1 +1,1 @@
-This is a placeholder text area. You can add some information about the files being served here.
+A curated collection of publicly available human genome datasets intended for use in training and education. These datasets are hosted by Ilifu and provide examples of real human genomic data to support learning in bioinformatics and genomics for the Neurogenomics Elective Course (MDN5008S).

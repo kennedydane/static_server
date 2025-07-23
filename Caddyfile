@@ -10,6 +10,13 @@
         file_server @static {
             root /tmp/melissa/static
         }
+        # Disable buffering for SSE endpoints
+        @sse {
+            path /api/events
+        }
+        reverse_proxy @sse localhost:5000 {
+            flush_interval -1
+        }
         reverse_proxy localhost:5000
     }
 }

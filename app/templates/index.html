@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Distribution Service</title>
+    <title>{{ config.heading }}</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
     <style>
@@ -151,19 +151,25 @@
 
     <header class="header">
         <div class="logo">
-            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <rect width="100" height="100" rx="15" fill="#ecf0f1"/>
-                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="40" font-family="sans-serif" fill="#2c3e50">LOGO</text>
-            </svg>
-            <span>My Organisation</span>
+            {% if config.logos %}
+                {% for logo in config.logos %}
+                    <img src="{{ logo }}" alt="Logo" style="height: 40px; margin-right: 1rem;">
+                {% endfor %}
+            {% else %}
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="100" height="100" rx="15" fill="#ecf0f1"/>
+                    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="40" font-family="sans-serif" fill="#2c3e50">LOGO</text>
+                </svg>
+            {% endif %}
+            <span>{{ config.organisation }}</span>
         </div>
     </header>
 
     <main class="container">
         <div class="content-box">
-            <h1>File Distribution Service</h1>
+            <h1>{{ config.heading }}</h1>
             <p class="intro-text">
-                This is a placeholder text area. You can add some information about the files being served here.
+                {{ config.text }}
             </p>
             <table>
                 <thead>
@@ -182,12 +188,14 @@
     </main>
 
     <footer class="footer">
+        {% if config.footer_links %}
         <ul class="footer-links">
-            <li><a href="#">Link 1</a></li>
-            <li><a href="#">Link 2</a></li>
-            <li><a href="#">Link 3</a></li>
+            {% for link in config.footer_links %}
+            <li><a href="{{ link.url }}">{{ link.text }}</a></li>
+            {% endfor %}
         </ul>
-        <p>&copy; 2025 My Organisation. All rights reserved.</p>
+        {% endif %}
+        <p>&copy; 2025 {{ config.organisation }}. All rights reserved.</p>
     </footer>
 
 </body>

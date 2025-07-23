@@ -5,7 +5,7 @@ import os
 import time
 from pathlib import Path
 from queue import Queue
-from threading import Thread
+from threading import Thread, Lock
 
 from flask import Flask, Response, jsonify, render_template
 from loguru import logger
@@ -16,7 +16,8 @@ from watchdog.observers import Observer
 STATIC_FOLDER = None
 CACHE_FILE = Path("cache/checksums.json")
 checksum_cache = {}
-sse_queue = Queue()
+sse_clients = []
+sse_clients_lock = Lock()
 
 
 # --- Initialization ---
@@ -110,7 +111,7 @@ def update_checksum_cache():
             with open(CACHE_FILE, "w") as f:
                 json.dump(checksum_cache, f, indent=4)
             logger.info("Checksum cache persisted to file.")
-            sse_queue.put("update")
+            broadcast_sse_update("update")
         except (IOError, OSError) as e:
             logger.error(f"Error writing cache file: {e}")
     else:
@@ -213,7 +214,25 @@ def get_config_data():
                 # Base64 encode the image for direct embedding in HTML
                 import base64
                 encoded_logo = base64.b64encode(f.read()).decode("utf-8")
-                config_data["logos"].append(f"data:image/svg+xml;base64,{encoded_logo}")
+                
+                # Determine MIME type based on file extension
+                file_ext = logo_path.suffix.lower()
+                if file_ext in ['.svg']:
+                    mime_type = "image/svg+xml"
+                elif file_ext in ['.png']:
+                    mime_type = "image/png"
+                elif file_ext in ['.jpg', '.jpeg']:
+                    mime_type = "image/jpeg"
+                elif file_ext in ['.gif']:
+                    mime_type = "image/gif"
+                elif file_ext in ['.webp']:
+                    mime_type = "image/webp"
+                else:
+                    # Default to PNG for unknown extensions
+                    mime_type = "image/png"
+                    logger.warning(f"Unknown image extension {file_ext} for {logo_path}, defaulting to PNG")
+                
+                config_data["logos"].append(f"data:{mime_type};base64,{encoded_logo}")
         except Exception as e:
             logger.error(f"Error reading or encoding logo {logo_path}: {e}")
 
@@ -241,13 +260,54 @@ def index():
     return render_template("index.html", config=config)
 
 
+def broadcast_sse_update(message):
+    """Broadcasts a message to all connected SSE clients."""
+    with sse_clients_lock:
+        disconnected_clients = []
+        for client_queue in sse_clients:
+            try:
+                client_queue.put_nowait(message)
+            except Exception:
+                # Client queue is full or closed, mark for removal
+                disconnected_clients.append(client_queue)
+        
+        # Remove disconnected clients
+        for client_queue in disconnected_clients:
+            sse_clients.remove(client_queue)
+            logger.info(f"Removed disconnected SSE client. Active clients: {len(sse_clients)}")
+
+
 @app.route("/api/events")
 def sse_events():
     """Endpoint for Server-Sent Events to notify clients of updates."""
+    client_queue = Queue(maxsize=100)
+    
+    # Register this client
+    with sse_clients_lock:
+        sse_clients.append(client_queue)
+        logger.info(f"New SSE client connected. Active clients: {len(sse_clients)}")
+    
     def event_stream():
-        while True:
-            message = sse_queue.get() # Blocks until a message is available
-            yield f"event: update\ndata: {message}\n\n"
+        try:
+            # Send initial connection confirmation
+            yield f"event: connected\ndata: connected\n\n"
+            
+            while True:
+                try:
+                    message = client_queue.get(timeout=30)  # 30 second timeout
+                    yield f"event: update\ndata: {message}\n\n"
+                except Exception:
+                    # Timeout or other error, send keepalive
+                    yield f"event: keepalive\ndata: ping\n\n"
+        except Exception as e:
+            logger.error(f"SSE client disconnected: {e}")
+        finally:
+            # Clean up this client
+            with sse_clients_lock:
+                if client_queue in sse_clients:
+                    sse_clients.remove(client_queue)
+                    logger.info(f"SSE client disconnected. Active clients: {len(sse_clients)}")
+    
     return Response(event_stream(), mimetype="text/event-stream")
 
 
