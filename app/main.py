@@ -53,18 +53,49 @@ def setup_logging(log_file):
 
 
 # --- Checksum Logic ---
+def read_description_content(file_data):
+    """Read the content of a description.txt file from file data."""
+    try:
+        file_path = STATIC_FOLDER / file_data['path']
+        return file_path.read_text(encoding='utf-8').strip()
+    except Exception as e:
+        logger.error(f"Error reading description file {file_data['path']}: {e}")
+        return None
+
+
 def build_file_tree(files_dict):
     """Build a nested tree structure from flat file paths."""
     tree = {}
+    descriptions = {}
     
+    # First pass: collect all description.txt files
     for filepath, data in files_dict.items():
+        if filepath.endswith('/description.txt') or filepath == 'description.txt':
+            # Get directory path (empty string for root)
+            dir_path = filepath.rsplit('/description.txt', 1)[0] if '/' in filepath else ''
+            description_content = read_description_content({'path': filepath})
+            if description_content:
+                descriptions[dir_path] = description_content
+    
+    # Second pass: build tree structure
+    for filepath, data in files_dict.items():
+        # Skip description.txt files from the tree display
+        if filepath.endswith('/description.txt') or filepath == 'description.txt':
+            continue
+            
         parts = filepath.split('/')
         current = tree
         
         # Navigate/create the directory structure
         for i, part in enumerate(parts[:-1]):
             if part not in current:
-                current[part] = {'type': 'directory', 'children': {}, 'path': '/'.join(parts[:i+1])}
+                dir_path = '/'.join(parts[:i+1])
+                current[part] = {
+                    'type': 'directory', 
+                    'children': {}, 
+                    'path': dir_path,
+                    'description': descriptions.get(dir_path)
+                }
             current = current[part]['children']
         
         # Add the file
@@ -75,7 +106,10 @@ def build_file_tree(files_dict):
             'data': data
         }
     
-    return tree
+    # Add root description if it exists
+    root_description = descriptions.get('')
+    
+    return tree, root_description
 
 
 def format_file_size(size_bytes):
@@ -420,15 +454,15 @@ def get_files_tree():
     """Returns the file tree structure as HTML."""
     with checksum_cache_lock:
         sorted_files = dict(sorted(checksum_cache.items()))
-    tree = build_file_tree(sorted_files)
-    return render_template("file_tree.html", tree=tree)
+    tree, root_description = build_file_tree(sorted_files)
+    return render_template("file_tree.html", tree=tree, root_description=root_description)
 
 
 @app.route("/api/files/tree/<path:directory>")
 def get_directory_contents(directory):
     """Returns the contents of a specific directory for expansion."""
     sorted_files = dict(sorted(checksum_cache.items()))
-    tree = build_file_tree(sorted_files)
+    tree, _ = build_file_tree(sorted_files)
     
     # Navigate to the requested directory
     current = tree

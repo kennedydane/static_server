@@ -214,7 +214,7 @@
                         <th>SHA256</th>
                     </tr>
                 </thead>
-                <tbody hx-trigger="load, sse:update" hx-get="/api/files/tree" hx-swap="innerHTML">
+                <tbody hx-trigger="load, sse:update" hx-get="/api/files/tree" hx-swap="innerHTML" hx-target="closest table">
                     <!-- File tree will be loaded here by htmx -->
                 </tbody>
             </table>
@@ -248,17 +248,26 @@
                     return parentPath === directoryPath;
                 });
                 
+                // Also find the description row for this directory if it exists
+                const descriptionRow = document.querySelector('tr.directory-description[data-directory="' + directoryPath + '"]');
+                
                 const isExpanded = icon.classList.contains('expanded');
                 
                 if (isExpanded) {
                     // Collapse - hide all descendants
                     hideDescendants(directoryPath);
+                    if (descriptionRow) {
+                        descriptionRow.style.display = 'none';
+                    }
                     icon.classList.remove('expanded');
                 } else {
-                    // Expand - show direct children only
+                    // Expand - show direct children and description
                     directChildren.forEach(row => {
                         row.style.display = 'table-row';
                     });
+                    if (descriptionRow) {
+                        descriptionRow.style.display = 'table-row';
+                    }
                     icon.classList.add('expanded');
                 }
                 
@@ -278,6 +287,12 @@
                         icon.classList.remove('expanded');
                     }
                 }
+            });
+            
+            // Also hide description rows for collapsed directories
+            const descriptionRows = document.querySelectorAll('tr.directory-description[data-parent^="' + directoryPath + '"]');
+            descriptionRows.forEach(row => {
+                row.style.display = 'none';
             });
         }
     </script>
