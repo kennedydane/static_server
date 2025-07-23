@@ -4,11 +4,14 @@ This project provides a simple and elegant web server for serving static files. 
 
 ## Features
 
-*   **Static File Serving**: Serves files from a `static` directory.
+*   **Static File Serving**: Serves files from a `static` directory with recursive subdirectory support.
 *   **Dynamic Checksums**: Automatically calculates and displays MD5 and SHA256 checksums for each file.
-*   **Real-time Updates**: The file list updates automatically when files are added or removed from the `static` directory.
-*   **Elegant Frontend**: A clean and simple user interface.
-*   **Robust Logging**: Features log rotation, compression, and retention.
+*   **Real-time Updates**: The file list updates automatically when files are added, removed, or modified in the `static` directory using Server-Sent Events (SSE).
+*   **Customizable Branding**: Dynamic configuration through the `config/` directory for logos, organization name, headings, and footer links.
+*   **Multi-client Support**: Multiple users can connect simultaneously and receive real-time updates.
+*   **Elegant Frontend**: A clean and simple user interface built with htmx for dynamic interactions.
+*   **Robust Logging**: Features log rotation, compression, and retention with detailed file system monitoring.
+*   **Intelligent Caching**: Configuration and file data are cached for optimal performance.
 
 ## Production Deployment
 
@@ -19,7 +22,7 @@ This guide provides instructions for deploying the application in a production e
 *   **A server**: A Linux server (e.g., Ubuntu, Debian) with a public IP address.
 *   **A domain name**: A domain name pointing to your server's IP address.
 *   **Caddy**: The Caddy web server. You can find installation instructions at [caddyserver.com](https://caddyserver.com/docs/install).
-*   **Python**: Python 3.6 or higher.
+*   **Python**: Python 3.8 or higher (recommended).
 *   **Git**: For cloning the repository.
 
 ### 1. Installation
@@ -64,6 +67,13 @@ your-domain.com {
         file_server @static {
             root /path/to/your/project/static
         }
+        # Disable buffering for SSE endpoints
+        @sse {
+            path /api/events
+        }
+        reverse_proxy @sse localhost:5000 {
+            flush_interval -1
+        }
         # Proxy all other requests to the Python backend
         reverse_proxy localhost:5000
     }
@@ -72,10 +82,20 @@ your-domain.com {
 
 **Note**: Make sure to replace `/path/to/your/project` with the actual absolute path to the project directory on your server.
 
+#### Configuration System
+
+The application supports dynamic configuration through files in the `config/` directory:
+
+*   **`organisation.txt`**: Organization name displayed in header and footer
+*   **`heading.txt`**: Main page heading and browser title
+*   **`text.txt`**: Descriptive text shown below the heading
+*   **`*.logo.*`**: Logo images (PNG, JPG, SVG, etc.) - files must contain `.logo.` in the name
+*   **`*.link`**: Footer links - each file should contain URL on first line, display text on second line
+
 #### Python Backend Configuration
 
 The Python application can be configured with the following command-line arguments:
-*   `--static-folder`: The path to the directory containing the files you want to serve. Defaults to `./static`.
+*   `--static-folder`: The path to the directory containing the files you want to serve. Defaults to `./static`. Supports recursive subdirectories.
 *   `--log-file`: The path to the file where logs should be written. Defaults to `./logs/app.log`.
 
 For production, it's recommended to serve files from a standard web directory like `/var/www/fserver` and write logs to `/var/log/file_server/app.log`.
@@ -160,6 +180,47 @@ caddy run
 
 Your website should now be live at `https://your-domain.com`.
 
+## Local Development
+
+For local development, you can run the application directly:
+
+```bash
+# Start the Python backend
+source .venv/bin/activate
+python app/main.py &
+
+# Start Caddy (in a separate terminal)
+caddy run
+```
+
+Then visit `http://localhost:8080` to access the application.
+
+## File Organization
+
+Files in the `static/` directory can be organized in subdirectories of any depth. All files will be recursively scanned and displayed with their full relative paths (e.g., `datasets/genome/sample1.vcf`).
+
+## Customization
+
+### Adding Logos
+Place image files with `.logo.` in the filename in the `config/` directory:
+- `01_company.logo.png` - Company logo
+- `02_partner.logo.svg` - Partner logo
+
+### Adding Footer Links
+Create `.link` files in the `config/` directory:
+```
+https://example.com
+Example Link Text
+```
+
+### Updating Content
+Modify the text files in `config/` to customize the interface:
+- Edit `organisation.txt` for the organization name
+- Edit `heading.txt` for the main page title
+- Edit `text.txt` for the description
+
+Changes to configuration files are automatically detected and cached for performance.
+
 ## Acknowledgements
 
-This project was created with the assistance of Google's Gemini.
+This project was created with the assistance of Google's Gemini and enhanced with Claude Code.
