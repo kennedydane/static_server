@@ -7,9 +7,11 @@ This project provides a simple and elegant web server for serving static files. 
 *   **Static File Serving**: Serves files from a `static` directory with recursive subdirectory support.
 *   **Dynamic Checksums**: Automatically calculates and displays MD5 and SHA256 checksums for each file.
 *   **Real-time Updates**: The file list updates automatically when files are added, removed, or modified in the `static` directory using Server-Sent Events (SSE).
+*   **Collapsible Directory Tree**: Files are organized in an expandable tree structure with directories collapsed by default for easy navigation.
+*   **Human-readable File Sizes**: File sizes are displayed in KB, MB, GB format instead of raw bytes.
 *   **Customizable Branding**: Dynamic configuration through the `config/` directory for logos, organization name, headings, and footer links.
 *   **Multi-client Support**: Multiple users can connect simultaneously and receive real-time updates.
-*   **Elegant Frontend**: A clean and simple user interface built with htmx for dynamic interactions.
+*   **Responsive Design**: Clean interface that adapts to different screen sizes with wider content area for better file list viewing.
 *   **Robust Logging**: Features log rotation, compression, and retention with detailed file system monitoring.
 *   **Intelligent Caching**: Configuration and file data are cached for optimal performance.
 
@@ -197,7 +199,13 @@ Then visit `http://localhost:8080` to access the application.
 
 ## File Organization
 
-Files in the `static/` directory can be organized in subdirectories of any depth. All files will be recursively scanned and displayed with their full relative paths (e.g., `datasets/genome/sample1.vcf`).
+Files in the `static/` directory can be organized in subdirectories of any depth. All files will be recursively scanned and displayed in a collapsible tree structure:
+
+- 📁 **Directories**: Shown with folder icons and expand/collapse arrows (▶/▼)
+- 📄 **Files**: Displayed with file icons and full relative paths (e.g., `datasets/genome/sample1.vcf`)
+- **Navigation**: Click directories to expand/collapse their contents
+- **File Sizes**: Displayed in human-readable format (KB, MB, GB)
+- **Checksums**: MD5 and SHA256 hashes calculated automatically for integrity verification
 
 ## Customization
 
