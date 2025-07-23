@@ -18,6 +18,8 @@ CACHE_FILE = Path("cache/checksums.json")
 checksum_cache = {}
 sse_clients = []
 sse_clients_lock = Lock()
+config_cache = {}
+config_cache_lock = Lock()
 
 
 # --- Initialization ---
@@ -171,7 +173,32 @@ def start_watcher():
 CONFIG_FOLDER = Path("config")
 
 def get_config_data():
-    """Loads dynamic configuration from the config folder."""
+    """Loads dynamic configuration from the config folder with caching."""
+    global config_cache
+    
+    with config_cache_lock:
+        # Check if we need to refresh the cache
+        cache_needs_refresh = False
+        
+        if not config_cache:
+            cache_needs_refresh = True
+        else:
+            # Check modification times of config files
+            config_files = list(CONFIG_FOLDER.glob("*"))
+            for config_file in config_files:
+                if config_file.is_file():
+                    mod_time = config_file.stat().st_mtime
+                    cached_mod_time = config_cache.get('file_mod_times', {}).get(str(config_file), 0)
+                    if mod_time > cached_mod_time:
+                        cache_needs_refresh = True
+                        break
+        
+        if not cache_needs_refresh:
+            return config_cache['data']
+        
+        logger.info("Refreshing config cache...")
+        
+    # Build fresh config data
     config_data = {
         "logos": [],
         "organisation": "My Organisation",
@@ -181,26 +208,33 @@ def get_config_data():
     }
 
     CONFIG_FOLDER.mkdir(exist_ok=True)
+    file_mod_times = {}
 
     # Load organisation name
+    org_file = CONFIG_FOLDER / "organisation.txt"
     try:
-        config_data["organisation"] = (CONFIG_FOLDER / "organisation.txt").read_text().strip()
+        config_data["organisation"] = org_file.read_text().strip()
+        file_mod_times[str(org_file)] = org_file.stat().st_mtime
     except FileNotFoundError:
         logger.warning("organisation.txt not found, using default.")
     except Exception as e:
         logger.error(f"Error reading organisation.txt: {e}")
 
     # Load heading
+    heading_file = CONFIG_FOLDER / "heading.txt"
     try:
-        config_data["heading"] = (CONFIG_FOLDER / "heading.txt").read_text().strip()
+        config_data["heading"] = heading_file.read_text().strip()
+        file_mod_times[str(heading_file)] = heading_file.stat().st_mtime
     except FileNotFoundError:
         logger.warning("heading.txt not found, using default.")
     except Exception as e:
         logger.error(f"Error reading heading.txt: {e}")
 
     # Load text
+    text_file = CONFIG_FOLDER / "text.txt"
     try:
-        config_data["text"] = (CONFIG_FOLDER / "text.txt").read_text().strip()
+        config_data["text"] = text_file.read_text().strip()
+        file_mod_times[str(text_file)] = text_file.stat().st_mtime
     except FileNotFoundError:
         logger.warning("text.txt not found, using default.")
     except Exception as e:
@@ -233,6 +267,7 @@ def get_config_data():
                     logger.warning(f"Unknown image extension {file_ext} for {logo_path}, defaulting to PNG")
                 
                 config_data["logos"].append(f"data:{mime_type};base64,{encoded_logo}")
+                file_mod_times[str(logo_path)] = logo_path.stat().st_mtime
         except Exception as e:
             logger.error(f"Error reading or encoding logo {logo_path}: {e}")
 
@@ -244,10 +279,17 @@ def get_config_data():
             lines = link_path.read_text().strip().split("\n")
             if len(lines) >= 2:
                 config_data["footer_links"].append({"url": lines[0], "text": lines[1]})
+                file_mod_times[str(link_path)] = link_path.stat().st_mtime
             else:
                 logger.warning(f"Skipping malformed link file: {link_path}")
         except Exception as e:
             logger.error(f"Error reading link file {link_path}: {e}")
+    
+    # Update cache
+    with config_cache_lock:
+        config_cache['data'] = config_data
+        config_cache['file_mod_times'] = file_mod_times
+        logger.info("Config cache updated.")
             
     return config_data
 
