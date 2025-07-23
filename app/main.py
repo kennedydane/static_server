@@ -11,8 +11,8 @@ from loguru import logger
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-# --- Configuration ---
-STATIC_FOLDER = Path("static")
+# --- Global Configuration ---
+STATIC_FOLDER = None
 CACHE_FILE = Path("cache/checksums.json")
 WATCH_DELAY = 300  # 5 minutes, as requested
 
@@ -38,11 +38,11 @@ def setup_logging(log_file):
     logger.info("Logging configured.")
 
 # Ensure necessary directories and files exist
-STATIC_FOLDER.mkdir(exist_ok=True)
-CACHE_FILE.parent.mkdir(exist_ok=True)
-if not CACHE_FILE.exists():
-    with open(CACHE_FILE, "w") as f:
-        json.dump({}, f)
+    STATIC_FOLDER.mkdir(exist_ok=True)
+    CACHE_FILE.parent.mkdir(exist_ok=True)
+    if not CACHE_FILE.exists():
+        with open(CACHE_FILE, "w") as f:
+            json.dump({}, f)
 
 
 # --- Checksum Logic ---
@@ -162,11 +162,19 @@ def get_files_table():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Simple Static File Server")
     parser.add_argument(
+        "--static-folder",
+        default="static",
+        help="Path to the folder containing static files to serve."
+    )
+    parser.add_argument(
         "--log-file",
         default="logs/app.log",
         help="Path to the log file."
     )
     args = parser.parse_args()
+
+    # Set global configuration from arguments
+    STATIC_FOLDER = Path(args.static_folder)
 
     setup_logging(args.log_file)
     

@@ -72,13 +72,22 @@ your-domain.com {
 
 **Note**: Make sure to replace `/path/to/your/project` with the actual absolute path to the project directory on your server.
 
-#### Python Backend Logging
+#### Python Backend Configuration
 
-The Python application can be configured to log to a specific file using the `--log-file` command-line argument. For production, it's recommended to log to a standard location like `/var/log/file_server/app.log`.
+The Python application can be configured with the following command-line arguments:
+*   `--static-folder`: The path to the directory containing the files you want to serve. Defaults to `./static`.
+*   `--log-file`: The path to the file where logs should be written. Defaults to `./logs/app.log`.
 
-First, create the directory and set the correct permissions (replace `your-user` with the user that will run the application):
+For production, it's recommended to serve files from a standard web directory like `/var/www/fserver` and write logs to `/var/log/file_server/app.log`.
+
+First, create the necessary directories and set the correct permissions (replace `your-user` with the user that will run the application):
 
 ```bash
+# Create the web directory
+sudo mkdir -p /var/www/fserver
+sudo chown your-user:your-user /var/www/fserver
+
+# Create the log directory
 sudo mkdir -p /var/log/file_server
 sudo chown your-user:your-user /var/log/file_server
 ```
@@ -89,19 +98,19 @@ For a production environment, it's important to run the Python backend as a serv
 
 #### Create a systemd Service File
 
-Create a new file at `/etc/systemd/system/fserver.service` with the following content.
+Create a new file at `/etc/systemd/system/melissa.service` with the following content.
 
 ```ini
 [Unit]
-Description=Static File Server
+Description=Melissa Static File Server
 After=network.target
 
 [Service]
 User=your-user
 Group=your-group
 WorkingDirectory=/path/to/your/project
-# Note the --log-file argument
-ExecStart=/path/to/your/project/.venv/bin/python app/main.py --log-file /var/log/file_server/app.log
+# Note the command-line arguments
+ExecStart=/path/to/your/project/.venv/bin/python app/main.py --static-folder /var/www/fserver --log-file /var/log/file_server/app.log
 Restart=always
 
 [Install]
@@ -117,14 +126,14 @@ WantedBy=multi-user.target
 Now, enable and start the service:
 
 ```bash
-sudo systemctl enable fserver.service
-sudo systemctl start fserver.service
+sudo systemctl enable melissa.service
+sudo systemctl start melissa.service
 ```
 
 You can check the status of the service with:
 
 ```bash
-sudo systemctl status fserver.service
+sudo systemctl status melissa.service
 ```
 
 And view the logs with:
