@@ -16,6 +16,7 @@ from watchdog.observers import Observer
 STATIC_FOLDER = None
 CACHE_FILE = Path("cache/checksums.json")
 checksum_cache = {}
+checksum_cache_lock = Lock()
 sse_clients = []
 sse_clients_lock = Lock()
 config_cache = {}
@@ -114,8 +115,9 @@ def update_checksum_cache():
     global checksum_cache
     logger.info("Scanning for file changes...")
 
-    # Make a copy of the current cache to compare against later
-    old_cache = checksum_cache.copy()
+    with checksum_cache_lock:
+        # Make a copy of the current cache to compare against later
+        old_cache = checksum_cache.copy()
 
     # Set of files currently on disk (recursive)
     files_on_disk = {}
@@ -401,7 +403,8 @@ def sse_events():
 @app.route("/api/files")
 def get_files_json():
     """Returns the list of files and their checksums from the in-memory cache as JSON."""
-    sorted_files = dict(sorted(checksum_cache.items()))
+    with checksum_cache_lock:
+        sorted_files = dict(sorted(checksum_cache.items()))
     return jsonify(sorted_files)
 
 
@@ -415,7 +418,8 @@ def get_files_table():
 @app.route("/api/files/tree")
 def get_files_tree():
     """Returns the file tree structure as HTML."""
-    sorted_files = dict(sorted(checksum_cache.items()))
+    with checksum_cache_lock:
+        sorted_files = dict(sorted(checksum_cache.items()))
     tree = build_file_tree(sorted_files)
     return render_template("file_tree.html", tree=tree)
 
