@@ -282,7 +282,8 @@ def get_config_data():
         "organisation": "My Organisation",
         "heading": "File Distribution Service",
         "text": "Welcome to the file distribution service.",
-        "footer_links": []
+        "footer_links": [],
+        "background_image": None
     }
 
     CONFIG_FOLDER.mkdir(exist_ok=True)
@@ -362,6 +363,34 @@ def get_config_data():
                 logger.warning(f"Skipping malformed link file: {link_path}")
         except Exception as e:
             logger.error(f"Error reading link file {link_path}: {e}")
+
+    # Load background image
+    try:
+        background_file = next(CONFIG_FOLDER.glob("background.*"), None)
+        if background_file:
+            import base64
+            encoded_bg = base64.b64encode(background_file.read_bytes()).decode("utf-8")
+            
+            file_ext = background_file.suffix.lower()
+            if file_ext in ['.svg']:
+                mime_type = "image/svg+xml"
+            elif file_ext in ['.png']:
+                mime_type = "image/png"
+            elif file_ext in ['.jpg', '.jpeg']:
+                mime_type = "image/jpeg"
+            elif file_ext in ['.gif']:
+                mime_type = "image/gif"
+            elif file_ext in ['.webp']:
+                mime_type = "image/webp"
+            else:
+                mime_type = "application/octet-stream"
+                logger.warning(f"Unknown background image extension {file_ext} for {background_file}, using default MIME type.")
+
+            config_data["background_image"] = f"data:{mime_type};base64,{encoded_bg}"
+            file_mod_times[str(background_file)] = background_file.stat().st_mtime
+            logger.info(f"Loaded background image: {background_file}")
+    except Exception as e:
+        logger.error(f"Error processing background image: {e}")
     
     # Update cache
     with config_cache_lock:
